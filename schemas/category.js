@@ -4,8 +4,12 @@ const categorySchema = new mongoose.Schema({
     categoryName: {
         type: String,
         required: true,
-        minLength: 5,  
-        maxLength: 50
+        unique: true
+    },
+    owner:{
+        type: mongoose.SchemaTypes.ObjectId,
+        ref: 'user',
+        required: true
     },
     isActive: {
         type:Boolean,
@@ -15,4 +19,4 @@ const categorySchema = new mongoose.Schema({
 
 });
 
-module.exports = mongoose.model('user', categorySchema);
+module.exports = mongoose.model('category', categorySchema);

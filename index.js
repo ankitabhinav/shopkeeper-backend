@@ -5,6 +5,8 @@ const bodyParser = require ('body-parser');
 const registerUserRouter = require('./routes/register');
 const productRouter = require('./routes/product');
 const variantRouter = require('./routes/variant');
+const categoryRouter = require('./routes/category');
+const subCategoryRouter = require('./routes/subCategory');
 const loginUserRouter = require('./routes/login');
 const cors = require('cors');
 const app = express();
@@ -17,6 +19,8 @@ app.use('/login', loginUserRouter);
 app.use('/register',registerUserRouter);
 app.use('/product',productRouter);
 app.use('/variant',variantRouter);
+app.use('/category',categoryRouter);
+app.use('/subCategory',subCategoryRouter);
 
 // init mongoose
 

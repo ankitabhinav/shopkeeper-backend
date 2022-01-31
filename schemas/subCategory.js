@@ -13,8 +13,8 @@ const subCategorySchema = new mongoose.Schema({
     variantName: {
         type: String,
         required: true,
-        minLength: 5,
-        maxLength: 3000
+        maxLength: 3000,
+        unique:true
     },
     isActive: {
         type:Boolean,
@@ -23,4 +23,4 @@ const subCategorySchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('user', subCategorySchema);
+module.exports = mongoose.model('subcategory', subCategorySchema);
