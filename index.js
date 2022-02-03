@@ -7,6 +7,8 @@ const productRouter = require('./routes/product');
 const variantRouter = require('./routes/variant');
 const categoryRouter = require('./routes/category');
 const subCategoryRouter = require('./routes/subCategory');
+const employeeRouter = require('./routes/employee');
+const posCounterRouter = require('./routes/posCounter');
 const loginUserRouter = require('./routes/login');
 const cors = require('cors');
 const app = express();
@@ -21,6 +23,8 @@ app.use('/product',productRouter);
 app.use('/variant',variantRouter);
 app.use('/category',categoryRouter);
 app.use('/subCategory',subCategoryRouter);
+app.use('/employee',employeeRouter);
+app.use('/posCounter',posCounterRouter);
 
 // init mongoose
 
