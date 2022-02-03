@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
-    owner:{
+    owner: {
         type: mongoose.SchemaTypes.ObjectId,
         ref: 'user',
         required: true
@@ -9,7 +9,7 @@ const productSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        minLength: 5,  
+        minLength: 5,
         maxLength: 50
     },
     manufacturer: {
@@ -19,37 +19,39 @@ const productSchema = new mongoose.Schema({
         maxLength: 255,
     },
     tags: [String],
-    manufacturerAddress:{
+    manufacturerAddress: {
         type: String,
     },
-    directions:{
+    directions: {
         type: String,
     },
-    caution:{
+    caution: {
         type: String,
     },
-    composition:{
+    composition: {
         type: String,
     },
-    contactEmail:{
+    contactEmail: {
         type: String,
     },
-    contactNumber:{
+    contactNumber: {
         type: String,
     },
-    shelfLife:{
+    shelfLife: {
         type: Number
     },
-    productImage:{
+    productImage: {
         type: String,
-        default:"https://i.ibb.co/brFh7nG/box-1252639-640.png"
+        default: "https://i.ibb.co/brFh7nG/box-1252639-640.png"
     },
     isActive: {
-        type:Boolean,
-        required:false,
-        default:true
+        type: Boolean,
+        required: false,
+        default: true
     }
 
 });
+
+productSchema.index({ owner: 1, name: 1, manufacturer: 1 }, { unique: true })
 
 module.exports = mongoose.model('product', productSchema);
