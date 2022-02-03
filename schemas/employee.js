@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const employee = new mongoose.Schema({
+const employeeSchema = new mongoose.Schema({
     owner: {
         type: mongoose.SchemaTypes.ObjectId,
         ref: 'user',
@@ -50,4 +50,6 @@ const employee = new mongoose.Schema({
 
 });
 
-module.exports = mongoose.model('employee', employee);
+ShapesSchema.index({ owner: 1, contactEmail: 1 }, { unique: true })
+
+module.exports = mongoose.model('employee', employeeSchema);
