@@ -12,6 +12,7 @@ const posCounterRouter = require('./routes/posCounter');
 const loginUserRouter = require('./routes/login');
 const searchRouter = require('./routes/search');
 const orderRouter = require('./routes/order');
+const favouriteRouter = require('./routes/favourite');
 const cors = require('cors');
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/employee',employeeRouter);
 app.use('/posCounter',posCounterRouter);
 app.use('/search',searchRouter);
 app.use('/order',orderRouter);
+app.use('/favourite',favouriteRouter);
 
 // init mongoose
 
