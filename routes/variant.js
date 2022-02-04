@@ -2,6 +2,7 @@ const express = require('express');
 const variantRouter = express.Router();
 //Create a usersModel model just by requiring the module
 const variantModel = require('../schemas/variant');
+const productModel = require('../schemas/product');
 const authMiddleware = require('../middleware/auth');
 const jwt = require('jsonwebtoken');
 variantRouter.use(authMiddleware)
@@ -30,7 +31,14 @@ variantRouter.post('/', (req, res) => {
     async function createVariant() {
         try {
 
+            let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+            let fetchProduct = await productModel.findOne({ owner: decoded._id, _id: req.body.parentProduct });
+            if (!fetchProduct) {
+                return res.status(400).send({ success: false, status: 'parent product not found' });
+            }
+
             const newVariant = new variantModel({
+                owner: decoded._id,
                 parentProduct: req.body.parentProduct,
                 barcode: req.body.barcode,
                 size: req.body.size,
@@ -63,47 +71,34 @@ variantRouter.post('/', (req, res) => {
 
 });
 
-variantRouter.patch('/', (req, res) => {
+variantRouter.patch('/:variantId', (req, res) => {
 
     //console.log(req.body);
 
-    if (
-        !req.body.barcode ||
-        !req.body.size ||
-        !req.body.availableQuantity ||
-        !req.body.price ||
-        !req.body.currency ||
-        !req.body.unit ||
-        !req.body.productId ||
-        !req.body.variantId
-    ) {
+    if (!req.body) {
         return res.status(400).send(
             {
                 success: false,
-                status: 'parentProduct, barcode, size, availableQuantity,currency, price, productId,variantId fields are required'
+                status: 'parentProduct, barcode, size, availableQuantity,currency, price, productId,variantId etc fields can be updated'
             }
         );
     }
 
     async function updateVariant() {
         try {
-            variantModel.findOneAndUpdate({ _id: req.body.variantId, parentProduct: req.body.productId }, {
-                barcode: req.body.barcode,
-                size: req.body.size,
-                availableQuantity: req.body.availableQuantity,
-                price: req.body.price,
-                currency: req.body.currency,
-                unit: req.body.unit
-            }, { new: true }, function (err, variant) {
-                if (err) {
-                    console.log(err);
-                    return res.status(500).send({ success: false, status: "variant update failed" });
+            let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+            variantModel.findOneAndUpdate({ _id: req.params.variantId, owner: decoded._id },
+                req.body,
+                { new: true }, function (err, variant) {
+                    if (err) {
+                        console.log(err);
+                        return res.status(500).send({ success: false, status: "variant update failed" });
+                    }
+                    else {
+                        console.log("Updated Variant : ", variant);
+                        return res.status(200).send({ success: true, status: "variant updated successfully", variant: variant });
+                    }
                 }
-                else {
-                    console.log("Updated Variant : ", variant);
-                    return res.status(200).send({ success: true, status: "variant updated successfully", variant: variant });
-                }
-            }
             ).populate('parentProduct');
 
         } catch (err) {
@@ -140,18 +135,21 @@ variantRouter.patch('/:operation', (req, res) => {
         );
     }
 
-    if (!req.body.variantId || !req.body.productId) {
+    if (!req.body.variantId) {
         return res.status(400).send(
             {
                 success: false,
-                status: 'variantId and productId are required in body'
+                status: 'variantId is required in body'
             }
         );
     }
 
     async function increaseDecreseStock() {
         try {
-            variantModel.findOneAndUpdate({ _id: req.body.variantId, parentProduct: req.body.productId }, {
+
+            let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+
+            variantModel.findOneAndUpdate({ _id: req.body.variantId, owner: decoded._id }, {
                 $inc: { availableQuantity: req.params.operation === 'increase' ? 1 : -1 }
             }, { new: true }, function (err, variant) {
                 if (err) {
@@ -188,14 +186,15 @@ variantRouter.delete('/', (req, res) => {
         return res.status(400).send(
             {
                 success: false,
-                status: 'productId,variantId fields are required'
+                status: 'variantId fields are required'
             }
         );
     }
 
     async function deleteVariant() {
         try {
-            variantModel.findOneAndUpdate({ _id: req.body.variantId, parentProduct: req.body.productId }, {
+            let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+            variantModel.findOneAndUpdate({ _id: req.body.variantId, owner: decoded._id }, {
                 isActive: false
             }, { new: true }, function (err, variant) {
                 if (err) {
@@ -221,17 +220,19 @@ variantRouter.delete('/', (req, res) => {
 
 });
 
-variantRouter.get('/list', (req, res) => {
+//get all variants of a product by productId
+variantRouter.get('/product/:productId', (req, res) => {
 
-    if (!req.query.productId) {
-        return res.status(400).send({ success: false, status: 'productId field is required' });
+    if (!req.params.productId) {
+        return res.status(400).send({ success: false, status: 'productId path paramater is required' });
     }
 
-    console.log(req.query)
+    console.log(req.params)
 
-    async function getAllVariants() {
+    async function getAllVariantsForProduct() {
         try {
-            let fetchVariants = await variantModel.find({ parentProduct: req.query.productId }).populate('parentProduct');
+            let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+            let fetchVariants = await variantModel.find({ parentProduct: req.params.productId, owner: decoded._id }).populate('parentProduct');
             if (!fetchVariants) {
                 return res.status(400).send({ success: false, status: "no variants found" });
             } else {
@@ -246,20 +247,22 @@ variantRouter.get('/list', (req, res) => {
 
 
     }
-    getAllVariants();
+    getAllVariantsForProduct();
 
 
 });
 
-variantRouter.get('/', (req, res) => {
+//get a single variant by variantId
+variantRouter.get('/:variantId', (req, res) => {
 
-    if (!req.query.productId || !req.query.variantId) {
-        return res.status(400).send({ success: false, status: 'productId and variant Id fields are required' });
+    if (!req.params.variantId) {
+        return res.status(400).send({ success: false, status: 'variantId path parameter is required' });
     }
 
     async function getOneVariant() {
         try {
-            let fetchOneVariant = await variantModel.find({ parentProduct: req.query.productId, _id: req.query.variantId }).populate('parentProduct');
+            let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+            let fetchOneVariant = await variantModel.find({ _id: req.params.variantId, owner: decoded._id }).populate('parentProduct');
             if (!fetchOneVariant) {
                 return res.status(400).send({ success: false, status: "no variant found" });
             } else {

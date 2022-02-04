@@ -50,6 +50,6 @@ const employeeSchema = new mongoose.Schema({
 
 });
 
-ShapesSchema.index({ owner: 1, contactEmail: 1 }, { unique: true })
+employeeSchema.index({ owner: 1, contactEmail: 1 }, { unique: true })
 
 module.exports = mongoose.model('employee', employeeSchema);

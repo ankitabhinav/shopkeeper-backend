@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const variantSchema = new mongoose.Schema({
+    owner:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
     parentProduct: {
         type: mongoose.SchemaTypes.ObjectId,
         ref: 'product',

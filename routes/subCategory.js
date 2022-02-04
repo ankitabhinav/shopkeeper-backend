@@ -2,6 +2,7 @@ const express = require('express');
 const subCategoryRouter = express.Router();
 //Create a usersModel model just by requiring the module
 const variantModel = require('../schemas/variant');
+const categoryModel = require('../schemas/category');
 const subCategoryModel = require('../schemas/subCategory');
 const authMiddleware = require('../middleware/auth');
 const jwt = require('jsonwebtoken');
@@ -26,8 +27,15 @@ subCategoryRouter.post('/', (req, res) => {
 
     async function createSubCategory() {
         try {
+            let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+
+            let fetchParentCategory = await categoryModel.findOne({ owner:decoded._id, _id: req.body.parentCategory });
+            if (!fetchParentCategory) {
+                return res.status(400).send({ success: false, status: 'parent category not found' });
+            }
 
             const newSubCategory = new subCategoryModel({
+                owner: decoded._id,
                 parentCategory: req.body.parentCategory,
                 subCategoryName: req.body.subCategoryName,
                 variantName: req.body.variantName
@@ -121,7 +129,8 @@ subCategoryRouter.delete('/', (req, res) => {
 
     async function deleteSubCategory() {
         try {
-            subCategoryModel.findOneAndUpdate({ _id: req.body.subCategoryId, parentCategory: req.body.parentCategoryId }, {
+            let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+            subCategoryModel.findOneAndUpdate({ _id: req.body.subCategoryId, parentCategory: req.body.parentCategoryId, owner:decoded._id }, {
                 isActive: false
             }, { new: true }, function (err, subCategory) {
                 if (err) {
@@ -147,6 +156,33 @@ subCategoryRouter.delete('/', (req, res) => {
 
 });
 
+subCategoryRouter.get('/', (req, res) => {
+
+
+    async function getAllSubCategories() {
+        try {
+            let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+
+            let fetchSubCategories = await subCategoryModel.find({ owner: decoded._id }).populate('parentCategory');
+            if (!fetchSubCategories) {
+                return res.status(400).send({ success: false, status: "no subCategories found" });
+            } else {
+                return res.status(200).send({ success: true, subCategories: fetchSubCategories });
+            }
+
+
+        } catch (err) {
+            console.log(err)
+            return res.status(500).send({ success: false, status: err ? err : "something went wrong" });
+        }
+
+
+    }
+    getAllSubCategories();
+
+
+});
+
 subCategoryRouter.get('/:parentCategoryId', (req, res) => {
 
     if (!req.params.parentCategoryId) {
@@ -157,7 +193,8 @@ subCategoryRouter.get('/:parentCategoryId', (req, res) => {
 
     async function getAllSubCategories() {
         try {
-            let fetchSubCategories = await subCategoryModel.find({ parentCategory: req.params.parentCategoryId }).populate('parentCategory');
+            let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+            let fetchSubCategories = await subCategoryModel.find({ parentCategory: req.params.parentCategoryId, owner:decoded._id }).populate('parentCategory');
             if (!fetchSubCategories) {
                 return res.status(400).send({ success: false, status: "no subCategories found" });
             } else {

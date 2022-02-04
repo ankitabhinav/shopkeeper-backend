@@ -1,5 +1,36 @@
 const mongoose = require('mongoose');
 
+const itemSchema = new mongoose.Schema({
+    itemName: {
+        type: String,
+        required: true,
+    },
+    unit:{
+        type: String,
+        required: true,
+    },
+    size:{
+      type : Number,
+      required: true
+    },
+    currency:{
+        type: String,
+        required: true,
+    },
+    price:{
+        type: Number,
+        required: true
+    },
+    quantity: {
+        type: Number,
+        required: true
+    },
+    total:{
+        type: Number,
+        required: true
+    }
+});
+
 const order = new mongoose.Schema({
     owner:{
         type: mongoose.SchemaTypes.ObjectId,
@@ -45,6 +76,7 @@ const order = new mongoose.Schema({
         ref: 'counter',
         required: true
     },
+    items : [itemSchema],
     isActive: {
         type:Boolean,
         required:false,
