@@ -11,6 +11,7 @@ const employeeRouter = require('./routes/employee');
 const posCounterRouter = require('./routes/posCounter');
 const loginUserRouter = require('./routes/login');
 const searchRouter = require('./routes/search');
+const orderRouter = require('./routes/order');
 const cors = require('cors');
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/subCategory',subCategoryRouter);
 app.use('/employee',employeeRouter);
 app.use('/posCounter',posCounterRouter);
 app.use('/search',searchRouter);
+app.use('/order',orderRouter);
 
 // init mongoose
 

@@ -40,11 +40,9 @@ const order = new mongoose.Schema({
     customerName: {
         type: String,
         required: true,
-        minLength: 5,  
     },
     customerMobile: {
         type: Number,
-        required: true,
         minLength: 10,
     },
     customerAddress:{
@@ -57,6 +55,7 @@ const order = new mongoose.Schema({
     },
     directions:{
         type: String,
+        default:'none'
     },
     orderType:{
         type: String,
@@ -66,22 +65,37 @@ const order = new mongoose.Schema({
     paymentMode : {
         type: String,
         enum: ['cash', 'card', 'wallet', 'upi','coupon'],
+        default: 'cash',
     },
     paymentStatus:{
         type: String,
         enum:['paid', 'unpaid'],
+        default: 'unpaid',
     },
     counter:{
         type: mongoose.SchemaTypes.ObjectId,
         ref: 'counter',
         required: true
     },
+    discount:{
+        type: Number,
+        required: true
+    },
     items : [itemSchema],
+    beforeDiscount:{
+        type: Number,
+        required: true
+    },
+    afterDiscount:{
+        type: Number,
+        required: true
+    },
     isActive: {
         type:Boolean,
         required:false,
         default:true
-    }
+    },
+    date: { type: Date, default: Date.now }
 
 });
 

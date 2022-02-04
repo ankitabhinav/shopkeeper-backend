@@ -71,6 +71,7 @@ variantRouter.post('/', (req, res) => {
 
 });
 
+//update a variant by variantId
 variantRouter.patch('/:variantId', (req, res) => {
 
     //console.log(req.body);
@@ -175,18 +176,16 @@ variantRouter.patch('/:operation', (req, res) => {
 
 });
 
-variantRouter.delete('/', (req, res) => {
+//delete a variant by variantId
+variantRouter.delete('/:variantId', (req, res) => {
 
     //console.log(req.body);
 
-    if (
-        !req.body.productId ||
-        !req.body.variantId
-    ) {
+    if ( !req.params.variantId ) {
         return res.status(400).send(
             {
                 success: false,
-                status: 'variantId fields are required'
+                status: 'variantId path parameter is required'
             }
         );
     }
@@ -194,7 +193,7 @@ variantRouter.delete('/', (req, res) => {
     async function deleteVariant() {
         try {
             let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
-            variantModel.findOneAndUpdate({ _id: req.body.variantId, owner: decoded._id }, {
+            variantModel.findOneAndUpdate({ _id: req.params.variantId, owner: decoded._id }, {
                 isActive: false
             }, { new: true }, function (err, variant) {
                 if (err) {
@@ -221,7 +220,7 @@ variantRouter.delete('/', (req, res) => {
 });
 
 //get all variants of a product by productId
-variantRouter.get('/product/:productId', (req, res) => {
+variantRouter.get('/allVariants/:productId', (req, res) => {
 
     if (!req.params.productId) {
         return res.status(400).send({ success: false, status: 'productId path paramater is required' });

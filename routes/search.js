@@ -33,7 +33,8 @@ searchRouter.get('/:searchParam/:query', (req, res) => {
 
         if(req.params.searchParam === 'barcode') {
             try {
-                const result = await variantModel.findOne({ barcode: req.params.query }).populate('parentProduct');
+                let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+                const result = await variantModel.findOne({ barcode: req.params.query,  owner:decoded._id }).populate('parentProduct');
                 if(result) {
                     return res.status(200).send({ success: true, status: 'search results', results: result });
                 } else {
@@ -46,7 +47,8 @@ searchRouter.get('/:searchParam/:query', (req, res) => {
         }
         if(req.params.searchParam === 'productName') {
             try {
-                const result = await productModel.find({ name: new RegExp(req.params.query, 'i')  });
+                let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+                const result = await productModel.find({ name: new RegExp(req.params.query, 'i'), owner: decoded._id });
                 if(result) {
                     return res.status(200).send({ success: true, status: 'search results', results: result });
                 } else {
@@ -75,7 +77,8 @@ searchRouter.get('/:searchParam/:query', (req, res) => {
 
         if(req.params.searchParam === 'categoryName') {
             try {
-                const result = await categoryModel.find({ categoryName: new RegExp(req.params.query, 'i')  });
+                let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+                const result = await categoryModel.find({ categoryName: new RegExp(req.params.query, 'i'), owner: decoded._id });
                 if(result) {
                     return res.status(200).send({ success: true, status: 'search results', results: result });
                 } else {
@@ -89,7 +92,8 @@ searchRouter.get('/:searchParam/:query', (req, res) => {
 
         if(req.params.searchParam === 'subCategoryName') {
             try {
-                const result = await subCategoryModel.find({ subCategoryName: new RegExp(req.params.query, 'i')  });
+                let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+                const result = await subCategoryModel.find({ subCategoryName: new RegExp(req.params.query, 'i'), owner: decoded._id });
                 if(result) {
                     return res.status(200).send({ success: true, status: 'search results', results: result });
                 } else {
