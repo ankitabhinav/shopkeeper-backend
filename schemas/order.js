@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const itemSchema = new mongoose.Schema({
+    variantId: {
+        type: mongoose.SchemaTypes.ObjectId,
+        ref: 'variant',
+        required: true
+    },
     itemName: {
         type: String,
         required: true,

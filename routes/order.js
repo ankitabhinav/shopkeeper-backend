@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const usersModel = require('../schemas/user');
 const productModel = require('../schemas/product');
 const employeeModel = require('../schemas/employee');
+const variantModel = require('../schemas/variant');
 const orderModel = require('../schemas/order');
 const sendVerificationEmail = require('../SendEmail')
 const authMiddleware = require('../middleware/auth');
@@ -17,30 +18,43 @@ orderRouter.post('/', (req, res) => {
     //console.log(req.body);
 
     if (
-        !req.body.customerName || 
-        !req.body.counter || 
+        !req.body.customerName ||
+        !req.body.counter ||
         !req.body.items ||
         !req.body.paymentStatus ||
         !req.body.discount
-        ) {
+    ) {
         return res.status(400).send({ success: false, status: 'customerName, counter, items, paymentStatus, discount(%) fields are required' });
     }
 
     async function createOrder() {
         try {
             let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
+            //calculate total order amount
             let orderTotal = 0;
             req.body.items.forEach((item) => {
                 item.total = item.quantity * item.price;
                 orderTotal += item.total;
             })
+            //calculate discount
             let withDiscount = orderTotal - (orderTotal * (req.body.discount / 100));
 
-            const newOrder = new orderModel({...req.body,beforeDiscount:orderTotal, afterDiscount:withDiscount, owner:decoded._id});
+            //decrease variant's quantity
+            req.body.items.forEach(async (item) => {
+                variantModel.findOneAndUpdate({ _id: item.variantId }, { $inc: { availableQuantity: -item.quantity } }, { new: true }, (err, result) => {
+                    if (err) {
+                        console.log(err)
+                        return res.status(500).send({ success: false, status: err ? err : "something went wrong" });
+                    }
+                })
+
+            })
+
+            const newOrder = new orderModel({ ...req.body, beforeDiscount: orderTotal, afterDiscount: withDiscount, owner: decoded._id });
             newOrder.save((err, order) => {
                 if (err) {
                     console.error(err);
-                    return res.status(400).send({ success: false, status: "add new order failed", error:err });
+                    return res.status(400).send({ success: false, status: "add new order failed", error: err });
                 } else {
 
                     return res.status(201).send({ success: true, status: "new order created successfully", order: order });
@@ -50,7 +64,7 @@ orderRouter.post('/', (req, res) => {
 
         } catch (err) {
             console.log(err)
-            return res.status(500).send({ success: false, status: err ? err : "something went wrong", error:err });
+            return res.status(500).send({ success: false, status: err ? err : "something went wrong", error: err });
         }
 
 
@@ -60,75 +74,36 @@ orderRouter.post('/', (req, res) => {
 
 });
 
-orderRouter.patch('/:employeeId', (req, res) => {
 
-    //console.log(req.body);
-    if (!req.params.employeeId) {
-        return res.status(400).send({ success: false, status: 'employeeId path parameter is required' });
-    }
-
-    if (!req.body) {
-        return res.status(400).send({ success: false, status: 'request body field is required' });
-    }
-
-    async function updateEmployee() {
-        try {
-            let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
-
-            employeeModel.findOneAndUpdate({ owner: decoded._id, employeeId: req.params.employeeId },
-                req.body, { new: true }, function (err, employee) {
-                    if (err) {
-                        console.log(err);
-                        return res.status(500).send({ success: false, status: "employee update failed" });
-                    }
-                    else {
-                        console.log("Updated employee : ", employee);
-                        return res.status(200).send({ success: true, status: "employee updated successfully", employee: employee });
-                    }
-                }
-            ).populate('owner', 'name email');
-
-        } catch (err) {
-            console.log(err)
-            return res.status(500).send({ success: false, status: err ? err : "something went wrong" });
-        }
-
-
-    }
-    updateEmployee();
-
-
-});
-
-orderRouter.delete('/:employeeId', (req, res) => {
+orderRouter.delete('/:orderId', (req, res) => {
 
     //console.log(req.body);
 
-    if (!req.params.employeeId) {
+    if (!req.params.orderId) {
         return res.status(400).send(
             {
                 success: false,
-                status: 'employeeId path parameter is required'
+                status: 'orderId path parameter is required'
             }
         );
     }
 
 
 
-    async function deleteEmployee() {
+    async function deleteOrder() {
         try {
             let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
 
-            employeeModel.findOneAndUpdate({ _id: req.params.employeeId, owner:decoded._id }, {
+            orderModel.findOneAndUpdate({ _id: req.params.orderId, owner: decoded._id }, {
                 isActive: false
-            }, { new: true }, function (err, employee) {
+            }, { new: true }, function (err, order) {
                 if (err) {
                     console.log(err);
-                    return res.status(500).send({ success: false, status: "employee delete failed" });
+                    return res.status(500).send({ success: false, status: "order delete failed" });
                 }
                 else {
-                    console.log("Updated employee : ", employee);
-                    return res.status(200).send({ success: true, status: "employee archived successfully", employee: employee });
+                    console.log("Updated order : ", order);
+                    return res.status(200).send({ success: true, status: "order archived successfully", order: order });
                 }
             }
             ).populate('owner', 'name email');
@@ -140,22 +115,22 @@ orderRouter.delete('/:employeeId', (req, res) => {
 
 
     }
-    deleteEmployee();
+    deleteOrder();
 
 
 });
 
 orderRouter.get('/', (req, res) => {
 
-    async function getEmployees() {
+    async function getAllOrders() {
         try {
 
             let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
-            let fetchEmployees = await employeeModel.find({ owner: decoded._id }).populate('owner', 'name email');
-            if (!fetchEmployees) {
-                return res.status(400).send({ success: false, status: "no employees found" });
+            let fetchOrders = await orderModel.find({ owner: decoded._id }).populate('owner', 'name email');
+            if (!fetchOrders) {
+                return res.status(400).send({ success: false, status: "no orders found" });
             } else {
-                return res.status(200).send({ success: true, employees: fetchEmployees });
+                return res.status(200).send({ success: true, orders: fetchOrders });
             }
 
 
@@ -166,25 +141,25 @@ orderRouter.get('/', (req, res) => {
 
 
     }
-    getEmployees();
+    getAllOrders();
 
 
 });
 
-orderRouter.get('/:employeeId', (req, res) => {
+orderRouter.get('/:orderId', (req, res) => {
 
-    if (!req.params.employeeId) {
-        return res.status(400).send({ success: false, status: 'employeeId path variaable is required' });
+    if (!req.params.orderId) {
+        return res.status(400).send({ success: false, status: 'orderId path variaable is required' });
     }
 
-    async function getOneEmployee() {
+    async function getOneOrder() {
         try {
             let decoded = await jwt.verify(req.auth_token, process.env.SHOPKEEPER_KEY);
-            let fetchEmployee = await employeeModel.findOne({ owner: decoded._id, _id: req.params.employeeId }).populate('owner', 'name email');
-            if (!fetchEmployee) {
-                return res.status(400).send({ success: false, status: "no employee found" });
+            let fetchOneOrder = await orderModel.findOne({ owner: decoded._id, _id: req.params.orderId }).populate('owner', 'name email');
+            if (!fetchOneOrder) {
+                return res.status(400).send({ success: false, status: "no order found" });
             } else {
-                return res.status(200).send({ success: true, employee: fetchEmployee });
+                return res.status(200).send({ success: true, order: fetchOneOrder });
             }
 
         } catch (err) {
@@ -194,7 +169,7 @@ orderRouter.get('/:employeeId', (req, res) => {
 
 
     }
-    getOneEmployee();
+    getOneOrder();
 
 
 });
